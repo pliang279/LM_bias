@@ -88,7 +88,8 @@ def data_preprocess(embed_source="glove"):
              ['female', 'male'], ['her', 'his'], ['herself', 'himself'], ['mary', 'john'], ['mom', 'dad'],
              ['gal', 'guy'], ['her', 'him'], ['Woman', 'Man'], ['Girl', 'Boy'], ['She', 'He'], ['Mother', 'Father'],
              ['Daughter', 'Son'], ['Female', 'Male'], ['Her', 'His'], ['Mary', 'John'], ['Mom', 'Dad'], ['Gal', 'Guy']]
-    # for p in [["woman", "man"], ["girl", "boy"], ["she", "he"], ["mother", "father"], ["daughter", "son"], ["gal", "guy"], ["female", "male"], ["her", "his"], ["herself", "himself"], ["mary", "john"]]:
+    # for p in [["woman", "man"], ["girl", "boy"], ["she", "he"], ["mother", "father"], ["daughter", "son"], ["gal", "guy"],
+    # ["female", "male"], ["her", "his"], ["herself", "himself"], ["mary", "john"]]:
     for p in pairs:
         female_biased_token_set.add(p[0])
         male_biased_token_set.add(p[1])
@@ -97,13 +98,14 @@ def data_preprocess(embed_source="glove"):
     print(len(male_biased_token_set), male_biased_token_set)
     print()
     print(len(female_biased_token_set), female_biased_token_set)
-    male_biased_token_set.remove("general")
-    male_biased_token_set.remove("drafted")
-    female_biased_token_set.remove("sassy")
+    # male_biased_token_set.remove("general")
+    # male_biased_token_set.remove("drafted")
+    # female_biased_token_set.remove("sassy")
 
-    corpus = ["data/text_corpus/reddit.txt", "data/text_corpus/meld.txt", "data/text_corpus/news_100.txt", "data/text_corpus/news_200.txt",
-              "data/text_corpus/sst.txt", "data/text_corpus/wikitext.txt", "data/text_corpus/yelp_review_1mb.txt",
-              "data/text_corpus/yelp_review_5mb.txt", "data/text_corpus/yelp_review_10mb.txt"]
+    corpus = ["../../data/text_corpus/reddit.txt", "../../data/text_corpus/meld.txt", "../../data/text_corpus/news_100.txt",
+              "../../data/text_corpus/news_200.txt", "../../data/text_corpus/sst.txt", "../../data/text_corpus/wikitext.txt",
+              "../../data/text_corpus/yelp_review_1mb.txt", "../../data/text_corpus/yelp_review_5mb.txt",
+              "../../data/text_corpus/yelp_review_10mb.txt"]
     male_biased_sent, female_biased_sent = [], []  # save gender biased sentences
     male_biased_sent_clip, female_biased_sent_clip = [], []  # save gender biased sentences clipped version
     neut_sent_clip = []
