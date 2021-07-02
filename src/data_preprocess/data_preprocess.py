@@ -26,7 +26,7 @@ def doPCA(pairs, num_components=10):
     return pca
 
 
-def bias_subspace(model, source=None, save_subspace=False, by_pca = True):
+def bias_subspace(model, source=None, save_subspace=False, by_pca=True):
     # define gender direction
     if by_pca:
         if source == "glove":
@@ -55,11 +55,21 @@ def bias_subspace(model, source=None, save_subspace=False, by_pca = True):
 
 
 def data_preprocess(embed_source="glove"):
+    if embed_source not in ["glove", "gpt2"]:
+        print("embedding source should be either glove or gpt2")
+        return
+
     if embed_source == "glove":
         model, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/vecs.filtered.txt")
     else:
         model, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/gpt2_embedding.txt")
     bias_direction = bias_subspace(model=model, source=embed_source, save_subspace=False, by_pca=True)
+    if embed_source == "glove":
+        if bias_direction.dot(model["woman"] - model["man"]) > 0:   # ensure bias_direction is man -> woman
+            bias_direction = -bias_direction
+    else:
+        if bias_direction.dot(model["Ġwoman"] - model["Ġman"]) > 0:
+            bias_direction = -bias_direction
 
     # projection on the gender direction, and got top n biased token
     n = 2500
@@ -67,37 +77,32 @@ def data_preprocess(embed_source="glove"):
     group2 = model.similar_by_vector(-bias_direction, topn=n, restrict_vocab=None)    # female biased
     male_tokens, male_scores = list(zip(*group1))
     female_tokens, female_scores = list(zip(*group2))
-    print(male_tokens[:100])
-    print(male_scores[:100])
-    # print("top 10 scores for male biased token: ", male_scores[:10])
-    # print(male_tokens[2400:2500])
-    # print("lowest 10 scores for male biased token: ", male_scores[2490:2500])
+    print("top 100 male tokens:", male_tokens[:100])
+    print("top 100 male projection values:", male_scores[:100])
     print()
-    print(female_tokens[:100])
-    print(female_scores[:100])
-    # print("top 10 scores for female biased token: ", female_scores[:10])
-    # print("lowest 10 scores for female biased token: ", female_scores[2490:2500])
-    female_biased_token = np.array(female_tokens)[np.array(list(female_scores)) > 0.25]
+    print("top 100 female tokens:", female_tokens[:100])
+    print("top 100 female projection values:", female_scores[:100])
+    print()
+
+    female_biased_token = np.array(female_tokens)[np.array(list(female_scores)) > 0.25]     # this threshold can be tuned
     male_biased_token = np.array(male_tokens)[np.array(list(male_scores)) > 0.24]
-    print()
-    print("male biased tokens in " + embed_source, male_biased_token.shape, "female biased tokens in " + embed_source, female_biased_token.shape)
 
     male_biased_token_set = set(male_biased_token)
     female_biased_token_set = set(female_biased_token)
     pairs = [['woman', 'man'], ['girl', 'boy'], ['she', 'he'], ['mother', 'father'], ['daughter', 'son'],
              ['female', 'male'], ['her', 'his'], ['herself', 'himself'], ['mary', 'john'], ['mom', 'dad'],
-             ['gal', 'guy'], ['her', 'him'], ['Woman', 'Man'], ['Girl', 'Boy'], ['She', 'He'], ['Mother', 'Father'],
-             ['Daughter', 'Son'], ['Female', 'Male'], ['Her', 'His'], ['Mary', 'John'], ['Mom', 'Dad'], ['Gal', 'Guy']]
-    # for p in [["woman", "man"], ["girl", "boy"], ["she", "he"], ["mother", "father"], ["daughter", "son"], ["gal", "guy"],
-    # ["female", "male"], ["her", "his"], ["herself", "himself"], ["mary", "john"]]:
+             ['gal', 'guy']]
     for p in pairs:
         female_biased_token_set.add(p[0])
+        female_biased_token_set.add(p[0].capitalize())
         male_biased_token_set.add(p[1])
-    female_biased_token_set.add("mom")
-    male_biased_token_set.add("dad")
-    print(len(male_biased_token_set), male_biased_token_set)
-    print()
-    print(len(female_biased_token_set), female_biased_token_set)
+        male_biased_token_set.add(p[1].capitalize())
+    print("male biased tokens in " + embed_source, male_biased_token.shape,
+          "female biased tokens in " + embed_source, female_biased_token.shape)
+    print(male_biased_token_set)
+    print(female_biased_token_set)
+
+    # there are some neutral tokens in the biased token set, we can remove them manually or estimate better bias direction
     # male_biased_token_set.remove("general")
     # male_biased_token_set.remove("drafted")
     # female_biased_token_set.remove("sassy")
@@ -114,7 +119,6 @@ def data_preprocess(embed_source="glove"):
         with open(cor, 'r') as f:
             text_corpus = f.read()
         text_corpus = text_corpus.split('\n')
-        # print()
         count = 0
         tmp_neut = []
 
@@ -134,10 +138,8 @@ def data_preprocess(embed_source="glove"):
                     female_token_ident.add(token)
                     idx = tokens.index(token)
                     if count < 20:
-                        # print(token, ": ", sent)
                         count += 1
                 if male_flag and female_flag:  # both male and female appears
-                    # print("both male and female appears", sent)
                     break
 
             if (not male_flag) and (not female_flag):  # neither male or female doesn't appear, view as neutral

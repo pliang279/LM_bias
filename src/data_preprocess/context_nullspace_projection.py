@@ -1,3 +1,5 @@
+# Some codes are from https://github.com/shauli-ravfogel/nullspace_projection
+
 import transformers
 from transformers import (
     CTRLLMHeadModel,
@@ -34,9 +36,6 @@ import sys
 sys.path.append("../../nullspace_projection/src")
 import classifier
 import debias
-import imp
-imp.reload(debias) #重新导入
-#import debias_old as debias
 import gensim
 import codecs
 import json
@@ -71,10 +70,11 @@ def load_data():
     female_sent = np.loadtxt("../../data/female_sentences_clip.txt", dtype=str, delimiter="\n")
     neut_sent = np.loadtxt("../../data/neut_sentences.txt", dtype=str, delimiter="\n")
     print(male_sent.shape, female_sent.shape, neut_sent.shape)
+
     male_sent = np.random.choice(male_sent, sample, replace=False)
     female_sent = np.random.choice(female_sent, sample, replace=False)
     neut_sent = np.random.choice(neut_sent, sample, replace=False)
-    print(male_sent.shape, female_sent.shape)
+    print(male_sent.shape, female_sent.shape, neut_sent.shape)
 
     return male_sent, female_sent, neut_sent
 
@@ -83,7 +83,6 @@ def extract_feat_of_context(male_sent, female_sent, neut_sent):
     # obtain features of the last token
     male_feat, female_feat, neut_feat = [], [], []
     with torch.no_grad():
-        t1 = time.time()
         for sent in male_sent.tolist():
             input_ids = tokenizer.encode(sent, add_special_tokens=False, return_tensors="pt")
             outputs = model.transformer(input_ids=input_ids)[0][0][-1].detach().numpy()    # (2, batch, len, dim)
@@ -96,8 +95,6 @@ def extract_feat_of_context(male_sent, female_sent, neut_sent):
             input_ids = tokenizer.encode(sent, add_special_tokens=False, return_tensors="pt")
             outputs = model.transformer(input_ids=input_ids)[0][0][-1].detach().numpy()    # (batch, len, dim)
             neut_feat.append(outputs)
-        t2 = time.time()
-        print("time:", t2-t1)
 
     # save features into npy files
     male_feat, female_feat, neut_feat = np.array(male_feat), np.array(female_feat), np.array(neut_feat)
@@ -112,14 +109,14 @@ def split_dataset(male_feat, female_feat, neut_feat):
 
     X = np.concatenate((male_feat, female_feat, neut_feat), axis=0)
     # np.random.shuffle(X)
-    #X = (X - np.mean(X, axis = 0, keepdims = True)) / np.std(X, axis = 0)
-    y_masc = np.ones(male_feat.shape[0], dtype = int)
-    y_fem = np.zeros(female_feat.shape[0], dtype = int)
-    y_neut = -np.ones(neut_feat.shape[0], dtype = int)
-    #y = np.concatenate((masc_scores, fem_scores, neut_scores))#np.concatenate((y_masc, y_fem))
+    # X = (X - np.mean(X, axis = 0, keepdims = True)) / np.std(X, axis = 0)
+    y_masc = np.ones(male_feat.shape[0], dtype=int)
+    y_fem = np.zeros(female_feat.shape[0], dtype=int)
+    y_neut = -np.ones(neut_feat.shape[0], dtype=int)
+    # y = np.concatenate((masc_scores, fem_scores, neut_scores))#np.concatenate((y_masc, y_fem))
     y = np.concatenate((y_masc, y_fem, y_neut))
-    X_train_dev, X_test, y_train_dev, Y_test = sklearn.model_selection.train_test_split(X, y, test_size = 0.3, random_state = 0)
-    X_train, X_dev, Y_train, Y_dev = sklearn.model_selection.train_test_split(X_train_dev, y_train_dev, test_size = 0.3, random_state = 0)
+    X_train_dev, X_test, y_train_dev, Y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.3, random_state=0)
+    X_train, X_dev, Y_train, Y_dev = sklearn.model_selection.train_test_split(X_train_dev, y_train_dev, test_size=0.3, random_state=0)
     print("Train size: {}; Dev size: {}; Test size: {}".format(X_train.shape[0], X_dev.shape[0], X_test.shape[0]))
 
     return X_train, X_dev, X_test, Y_train, Y_dev, Y_test
@@ -194,7 +191,7 @@ def apply_nullspace_projection(X_train, X_dev, X_test, Y_train, Y_dev, Y_test):
                                                             X_train, Y_train, X_dev, Y_dev,
                                                             Y_train_main=None, Y_dev_main=None,
                                                             by_class=False, dropout_rate=dropout_rate)
-    np.save("../../data/saved_P/P.npy", P)
+    # np.save("../../data/saved_P/P.npy", P)
 
     return P, rowspace_projs, Ws
 
@@ -276,7 +273,6 @@ if __name__ == '__main__':
     male_sent, female_sent, neut_sent = load_data()
     # extract_feat_of_context(male_sent, female_sent, neut_sent)
 
-    # male_feat, female_feat, neut_feat = np.load("data/male_sentence_clip_feat.npy"), np.load("data/female_sentence_clip_feat.npy"), np.load("data/neut_sentence_clip_feat.npy")
     male_feat, female_feat, neut_feat = np.load("../../data/male_sentence_clip_feat_random.npy"), \
                                         np.load("../../data/female_sentence_clip_feat_random.npy"), \
                                         np.load("../../data/neut_sentence_clip_feat_random.npy")
