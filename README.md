@@ -30,7 +30,7 @@ python context_nullspace_projection.py
 ```
 The code of nullspace projection is from [INLP](https://github.com/shauli-ravfogel/nullspace_projection). Thanks for their great work!
 
-## 3. Evaluate Bias existing in the gpt2
+### 3. Evaluate Bias existing in the gpt2
 ```python
 python measure_local_bias.py
 ```
