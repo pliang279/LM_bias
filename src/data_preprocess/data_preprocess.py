@@ -3,6 +3,19 @@ from sklearn.decomposition import PCA
 import numpy as np
 import torch
 import random
+import argparse
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--embed_source", type=str, default="glove",
+                        help="choose the source of word embedding, e.g. glove, gpt2")
+    parser.add_argument("--by_pca", type=bool, default=True, help="whether to use PCA to obatin the bias subspace")
+    parser.add_argument("--num_components", type=int, default=5, help="number of components of the bias subspace")
+    parser.add_argument("--save_subspace", type=bool, default=False, help="whether to save the bias subspace")
+    args = parser.parse_args()
+    return args
+
 
 # obtain glove biased tokens
 def load_word_vectors(fname):
@@ -15,18 +28,18 @@ def load_word_vectors(fname):
 def doPCA(pairs, num_components=10):
     matrix = []
     for a, b in pairs:
-        center = (a + b)/2
+        center = (a + b) / 2
         norm_a = a - center
         norm_b = b - center
         matrix.append(norm_a)
         matrix.append(norm_b)
     matrix = np.array(matrix)
     pca = PCA(n_components=num_components, svd_solver="full")
-    pca.fit(matrix) # Produce different results each time...
+    pca.fit(matrix)
     return pca
 
 
-def bias_subspace(model, source=None, save_subspace=False, by_pca=True):
+def bias_subspace(embed, source=None, save_subspace=False, by_pca=True, num_components=5):
     # define gender direction
     if by_pca:
         if source == "glove":
@@ -38,43 +51,47 @@ def bias_subspace(model, source=None, save_subspace=False, by_pca=True):
                      ["ĠMary", "ĠJohn"], ["Ġmom", "Ġdad"], ["Ġgal", "Ġguy"]]
         pair = []
         for p in pairs:
-            pair.append((model[p[0]], model[p[1]]))
+            pair.append((embed[p[0]], embed[p[1]]))
         pca = doPCA(pair)
         bias_direction = pca.components_[0]  # man - woman
-        bias_subspace = pca.components_[:5]
-        print(pca.explained_variance_ratio_)
+        bias_subspace = pca.components_[:num_components]
+        print("pca explained variance ratio: ", pca.explained_variance_ratio_)
         if save_subspace:
             np.save(source + "_bias_subspace", bias_direction)
             np.save(source + "_bias_direction", bias_subspace)
     else:
-        bias_direction = model["he"] - model["she"]
+        bias_direction = embed["he"] - embed["she"]
         if save_subspace:
             np.save(source + "_bias_subspace", bias_direction)
 
     return bias_direction
 
 
-def data_preprocess(embed_source="glove"):
-    if embed_source not in ["glove", "gpt2"]:
-        print("embedding source should be either glove or gpt2")
+def data_preprocess():
+    args = get_args()
+
+    if args.embed_source not in ["glove", "gpt2"]:
+        print("Embedding source should be either glove or gpt2. Or you can download other embedding by yourself.")
         return
 
-    if embed_source == "glove":
-        model, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/vecs.filtered.txt")
+    if args.embed_source == "glove":
+        embed, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/vecs.filtered.txt")
     else:
-        model, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/gpt2_embedding.txt")
-    bias_direction = bias_subspace(model=model, source=embed_source, save_subspace=False, by_pca=True)
-    if embed_source == "glove":
-        if bias_direction.dot(model["woman"] - model["man"]) > 0:   # ensure bias_direction is man -> woman
+        embed, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/gpt2_embedding.txt")
+
+    bias_direction = bias_subspace(embed=embed, source=args.embed_source, save_subspace=args.save_subspace,
+                                   by_pca=args.by_pca, num_components=args.num_components)
+    if args.embed_source == "glove":
+        if bias_direction.dot(embed["woman"] - embed["man"]) > 0:
             bias_direction = -bias_direction
     else:
-        if bias_direction.dot(model["Ġwoman"] - model["Ġman"]) > 0:
+        if bias_direction.dot(embed["Ġwoman"] - embed["Ġman"]) > 0:
             bias_direction = -bias_direction
 
     # projection on the gender direction, and got top n biased token
     n = 2500
-    group1 = model.similar_by_vector(bias_direction, topn=n, restrict_vocab=None)    # male biased
-    group2 = model.similar_by_vector(-bias_direction, topn=n, restrict_vocab=None)    # female biased
+    group1 = embed.similar_by_vector(bias_direction, topn=n, restrict_vocab=None)    # male biased
+    group2 = embed.similar_by_vector(-bias_direction, topn=n, restrict_vocab=None)    # female biased
     male_tokens, male_scores = list(zip(*group1))
     female_tokens, female_scores = list(zip(*group2))
     print("top 100 male tokens:", male_tokens[:100])
@@ -84,7 +101,7 @@ def data_preprocess(embed_source="glove"):
     print("top 100 female projection values:", female_scores[:100])
     print()
 
-    female_biased_token = np.array(female_tokens)[np.array(list(female_scores)) > 0.25]     # this threshold can be tuned
+    female_biased_token = np.array(female_tokens)[np.array(list(female_scores)) > 0.25]
     male_biased_token = np.array(male_tokens)[np.array(list(male_scores)) > 0.24]
 
     male_biased_token_set = set(male_biased_token)
@@ -97,8 +114,8 @@ def data_preprocess(embed_source="glove"):
         female_biased_token_set.add(p[0].capitalize())
         male_biased_token_set.add(p[1])
         male_biased_token_set.add(p[1].capitalize())
-    print("male biased tokens in " + embed_source, male_biased_token.shape,
-          "female biased tokens in " + embed_source, female_biased_token.shape)
+    print("male biased tokens in " + args.embed_source, male_biased_token.shape,
+          "female biased tokens in " + args.embed_source, female_biased_token.shape)
     print(male_biased_token_set)
     print(female_biased_token_set)
 
@@ -180,4 +197,4 @@ def data_preprocess(embed_source="glove"):
 
 
 if __name__ == '__main__':
-    data_preprocess(embed_source="glove")   # gpt2
+    data_preprocess()
