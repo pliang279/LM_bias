@@ -1,1 +1,40 @@
 # Towards Understanding and Mitigating Social Biases in Language Models
+
+This repo contains code and data for evaluating and mitigating bias from generation models.
+
+
+## Paper
+
+[**Towards Understanding and Mitigating Social Biases in Language Models**](https://arxiv.org/pdf/2106.13219.pdf)<br>
+[Paul Pu Liang](http://www.cs.cmu.edu/~pliang/), Chiyu Wu, [Louis-Philippe Morency](https://www.cs.cmu.edu/~morency/), and [Ruslan Salakhutdinov](https://www.cs.cmu.edu/~rsalakhu/)<br>
+ICML 2021
+
+If you find this repository useful, please cite our paper:
+```
+@article{liang2021towards,
+  title={Towards Understanding and Mitigating Social Biases in Language Models},
+  author={Liang, Paul Pu and Wu, Chiyu and Morency, Louis-Philippe and Salakhutdinov, Ruslan},
+  journal={arXiv preprint arXiv:2106.13219},
+  year={2021}
+}
+```
+
+### 1. Identify bias-sensitive tokens, obtain bias subspace and create the dataset to train the bias classifier
+```python
+python data_preprocess.py --embed_source glove --by_pca True --num_components 5 --save_subspace False
+```
+
+### 2. Train the bias classifier and learn the projection matrix P
+```python
+python context_nullspace_projection.py
+```
+The code of nullspace projection is from [INLP](https://github.com/shauli-ravfogel/nullspace_projection). Thanks for their great work!
+
+## 3. Evaluate Bias existing in the gpt2
+```python
+python measure_local_bias.py
+```
+
+To reproduce the result in our paper, we also provide the projection matrix P for the gender bias test in `data/saved_P/P_gender_test_79.npy`
+
+More code and data will be uploaded soon
