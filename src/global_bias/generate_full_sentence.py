@@ -80,7 +80,6 @@ def drop(u, v):
 
 # hyperparameters
 p = 0.7  # used for top k filtering
-A = [0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]  # percentage of original gpt2, can be a list
 nums_iter = 1
 do_sample = True
 max_len = 30
@@ -98,8 +97,10 @@ bias_thre = (0.15, -0.1)
 
 
 def generate_sentences(tokenizer, model, embedding, P, device, method, f):
-    gender_direction = np.load("gender_direction.np.npy")
-    if method == "subspace":
+    gender_direction = np.load("../../data/bias_subspace/gpt2_gender_direction.npy")
+    if method == "INLP":
+        A = [0.75, 0.8, 0.85, 0.9, 0.95, 1.0]  # percentage of original gpt2, can be a list
+    else:
         embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         A = [1.0]
 
