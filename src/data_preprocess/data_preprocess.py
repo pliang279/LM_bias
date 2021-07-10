@@ -13,6 +13,7 @@ def get_args():
     parser.add_argument("--by_pca", type=bool, default=True, help="whether to use PCA to obatin the bias subspace")
     parser.add_argument("--num_components", type=int, default=5, help="number of components of the bias subspace")
     parser.add_argument("--save_subspace", type=bool, default=False, help="whether to save the bias subspace")
+    parser.add_argument("--save_path", type=str, default="../../data/bias_subspace/", help="whether to save the bias subspace")
     args = parser.parse_args()
     return args
 
@@ -39,7 +40,7 @@ def doPCA(pairs, num_components=10):
     return pca
 
 
-def bias_subspace(embed, source=None, save_subspace=False, by_pca=True, num_components=5):
+def bias_subspace(embed, source=None, save_subspace=False, save_path="", by_pca=True, num_components=5):
     # define gender direction
     if by_pca:
         if source == "glove":
@@ -71,16 +72,16 @@ def data_preprocess():
     args = get_args()
 
     if args.embed_source not in ["glove", "gpt2"]:
-        print("Embedding source should be either glove or gpt2. Or you can download other embedding by yourself.")
+        print("Embedding source should be either glove or gpt2. Or you can download other embeddings by yourself.")
         return
 
     if args.embed_source == "glove":
-        embed, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/vecs.filtered.txt")
+        embed, vecs, words = load_word_vectors(fname="../../data/embeddings/vecs.filtered.txt")
     else:
-        embed, vecs, words = load_word_vectors(fname="../../nullspace_projection/data/embeddings/gpt2_embedding.txt")
+        embed, vecs, words = load_word_vectors(fname="../../data/embeddings/gpt2_embedding.txt")
 
     bias_direction = bias_subspace(embed=embed, source=args.embed_source, save_subspace=args.save_subspace,
-                                   by_pca=args.by_pca, num_components=args.num_components)
+                                   save_path=args.save_path, by_pca=args.by_pca, num_components=args.num_components)
     if args.embed_source == "glove":
         if bias_direction.dot(embed["woman"] - embed["man"]) > 0:
             bias_direction = -bias_direction
@@ -101,28 +102,47 @@ def data_preprocess():
     print("top 100 female projection values:", female_scores[:100])
     print()
 
-    female_biased_token = np.array(female_tokens)[np.array(list(female_scores)) > 0.25]
-    male_biased_token = np.array(male_tokens)[np.array(list(male_scores)) > 0.24]
+    # this threshold should be tuned according to the used embedding
+    threshold_male, threshold_female = 0.24, 0.25
+    female_biased_token = np.array(female_tokens)[np.array(list(female_scores)) > threshold_female]
+    male_biased_token = np.array(male_tokens)[np.array(list(male_scores)) > threshold_male]
 
     male_biased_token_set = set(male_biased_token)
     female_biased_token_set = set(female_biased_token)
-    pairs = [['woman', 'man'], ['girl', 'boy'], ['she', 'he'], ['mother', 'father'], ['daughter', 'son'],
-             ['female', 'male'], ['her', 'his'], ['herself', 'himself'], ['mary', 'john'], ['mom', 'dad'],
-             ['gal', 'guy']]
+    if args.embed_source == "glove":
+        pairs = [['woman', 'man'], ['girl', 'boy'], ['she', 'he'], ['mother', 'father'], ['daughter', 'son'],
+                 ['female', 'male'], ['her', 'his'], ['herself', 'himself'], ['mary', 'john'], ['mom', 'dad'],
+                 ['gal', 'guy']]
+    else:
+        pairs = [["Ġwoman", "Ġman"], ["Ġgirl", "Ġboy"], ["Ġshe", "Ġhe"], ["Ġmother", "Ġfather"],
+                 ["Ġdaughter", "Ġson"], ["Ġfemale", "Ġmale"], ["Ġher", "Ġhis"], ["Ġherself", "Ġhimself"],
+                 ["ĠMary", "ĠJohn"], ["Ġmom", "Ġdad"], ["Ġgal", "Ġguy"]]
     for p in pairs:
         female_biased_token_set.add(p[0])
-        female_biased_token_set.add(p[0].capitalize())
         male_biased_token_set.add(p[1])
-        male_biased_token_set.add(p[1].capitalize())
+        if args.embed_source == "glove":
+            female_biased_token_set.add(p[0].capitalize())
+            male_biased_token_set.add(p[1].capitalize())
     print("male biased tokens in " + args.embed_source, male_biased_token.shape,
           "female biased tokens in " + args.embed_source, female_biased_token.shape)
     print(male_biased_token_set)
     print(female_biased_token_set)
 
     # there are some neutral tokens in the biased token set, we can remove them manually or estimate better bias direction
-    # male_biased_token_set.remove("general")
-    # male_biased_token_set.remove("drafted")
-    # female_biased_token_set.remove("sassy")
+    if args.embed_source == "glove":
+        male_filter_list = ["general", "drafted"]
+        female_filter_list = ["sassy"]
+    else:
+        male_filter_list, female_filter_list = [], []
+    for token in male_filter_list:
+        male_biased_token_set.remove(token)
+    for token in female_filter_list:
+        female_biased_token_set.remove(token)
+
+    if args.embed_source == "gpt2":
+        # when using gpt2 embedding, we can also use tokenizer to find bias specific sentences
+        male_biased_token_set = set([x.replace("Ġ", "") for x in male_biased_token_set])
+        female_biased_token_set = set([x.replace("Ġ", "") for x in female_biased_token_set])
 
     corpus = ["../../data/text_corpus/reddit.txt", "../../data/text_corpus/meld.txt", "../../data/text_corpus/news_100.txt",
               "../../data/text_corpus/news_200.txt", "../../data/text_corpus/sst.txt", "../../data/text_corpus/wikitext.txt",
@@ -189,11 +209,11 @@ def data_preprocess():
     print(male_token_ident)
     print(female_token_ident)
 
-    # np.savetxt("data/male_sentences.txt", male_biased_sent, fmt="%s")
-    # np.savetxt("data/female_sentences.txt", female_biased_sent, fmt="%s")
-    # np.savetxt("data/neut_sentences.txt", neut_sent_clip, fmt="%s")
-    # np.savetxt("data/male_sentences_clip.txt", male_biased_sent_clip, fmt="%s")
-    # np.savetxt("data/female_sentences_clip.txt", female_biased_sent_clip, fmt="%s")
+    # np.savetxt("../../data/male_sentences.txt", male_biased_sent, fmt="%s")
+    # np.savetxt("../../data/female_sentences.txt", female_biased_sent, fmt="%s")
+    # np.savetxt("../../data/neut_sentences.txt", neut_sent_clip, fmt="%s")
+    # np.savetxt("../../data/male_sentences_clip.txt", male_biased_sent_clip, fmt="%s")
+    # np.savetxt("../../data/female_sentences_clip.txt", female_biased_sent_clip, fmt="%s")
 
 
 if __name__ == '__main__':

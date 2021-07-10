@@ -123,15 +123,15 @@ def topk_kl_overlap(prompt_text, k, tokenizer, model, embedding, P, A, device):
 def topk_kl_overlap_subspace(prompt_text, k, tokenizer, model, embedding, mode, device):
     if mode[1] == "gender":
         if mode[0] == "direction":
-            gender_direction = np.load("../../data/gpt2_gender_direction.npy")
+            gender_direction = np.load("../../data/bias_subspace/gpt2_gender_direction.npy")
             debiased_embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         else:
-            gender_direction = np.load("../../data/gpt2_gender_subspace.npy")
+            gender_direction = np.load("../../data/bias_subspace/gpt2_gender_subspace.npy")
             debiased_embedding = np.array([dropspace(embedding[i], gender_direction) for i in range(embedding.shape[0])])
     else:
-        religion_dir1 = np.load("../../data/religion_direction1.npy")
-        religion_dir2 = np.load("../../data/religion_direction2.npy")
-        religion_dir3 = np.load("../../data/religion_direction3.npy")
+        religion_dir1 = np.load("../../data/bias_subspace/religion_direction1.npy")
+        religion_dir2 = np.load("../../data/bias_subspace/religion_direction2.npy")
+        religion_dir3 = np.load("../../data/bias_subspace/religion_direction3.npy")
         debiased_embedding = np.array([drop(embedding[i], religion_dir1) for i in range(embedding.shape[0])])
         debiased_embedding = np.array([drop(debiased_embedding[i], religion_dir2) for i in range(embedding.shape[0])])
         debiased_embedding = np.array([drop(debiased_embedding[i], religion_dir3) for i in range(embedding.shape[0])])
@@ -420,16 +420,16 @@ def local_Hellinger_sensitive(male_context, female_context, tokenizer, model, em
 def local_Hellinger_subspace(male_context, female_context, tokenizer, model, embedding, mode, device):
     if mode[1] == "gender":
         if mode[0] == "direction":
-            gender_direction = np.load("../../data/gpt2_gender_direction.npy")
+            gender_direction = np.load("../../data/bias_subspace/gpt2_gender_direction.npy")
             debiased_embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         else:
-            gender_direction = np.load("../../data/gpt2_gender_subspace.npy")
+            gender_direction = np.load("../../data/bias_subspace/gpt2_gender_subspace.npy")
             debiased_embedding = np.array([dropspace(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         # self.embedding.to(self.args.device)
     elif mode[1] == "religion":
-        religion_dir1 = np.load("../../data/religion_direction1.npy")
-        religion_dir2 = np.load("../../data/religion_direction2.npy")
-        religion_dir3 = np.load("../../data/religion_direction3.npy")
+        religion_dir1 = np.load("../../data/bias_subspace/religion_direction1.npy")
+        religion_dir2 = np.load("../../data/bias_subspace/religion_direction2.npy")
+        religion_dir3 = np.load("../../data/bias_subspace/religion_direction3.npy")
         debiased_embedding = np.array([drop(embedding[i], religion_dir1) for i in range(embedding.shape[0])])
         debiased_embedding = np.array([drop(debiased_embedding[i], religion_dir2) for i in range(embedding.shape[0])])
         debiased_embedding = np.array([drop(debiased_embedding[i], religion_dir3) for i in range(embedding.shape[0])])
@@ -555,16 +555,16 @@ def weat_true_label_sensitive(weat_dataset, weat_pos, model, embedding, mode, p,
 def weat_true_label_subspace(weat_dataset, weat_pos, model, embedding, mode, p, device, topk=False):
     if mode[1] == "gender":
         if mode[0] == "direction":
-            gender_direction = np.load("../../data/gpt2_gender_direction.npy")
+            gender_direction = np.load("../../data/bias_subspace/gpt2_gender_direction.npy")
             debiased_embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         else:
-            gender_direction = np.load("../../data/gpt2_gender_subspace.npy")
+            gender_direction = np.load("../../data/bias_subspace/gpt2_gender_subspace.npy")
             debiased_embedding = np.array([dropspace(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         # self.embedding.to(self.args.device)
     elif mode[1] == "religion":
-        religion_dir1 = np.load("../../data/religion_direction1.npy")
-        religion_dir2 = np.load("../../data/religion_direction2.npy")
-        religion_dir3 = np.load("../../data/religion_direction3.npy")
+        religion_dir1 = np.load("../../data/bias_subspace/religion_direction1.npy")
+        religion_dir2 = np.load("../../data/bias_subspace/religion_direction2.npy")
+        religion_dir3 = np.load("../../data/bias_subspace/religion_direction3.npy")
         debiased_embedding = np.array([drop(embedding[i], religion_dir1) for i in range(embedding.shape[0])])
         debiased_embedding = np.array([drop(debiased_embedding[i], religion_dir2) for i in range(embedding.shape[0])])
         debiased_embedding = np.array([drop(debiased_embedding[i], religion_dir3) for i in range(embedding.shape[0])])

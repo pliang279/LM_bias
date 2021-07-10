@@ -74,25 +74,35 @@ def mean_ds(x, dim=None):
     )
 
 
+def drop(u, v):
+    return u - v * u.dot(v) / v.dot(v)
+
+
 # hyperparameters
 p = 0.7  # used for top k filtering
 A = [0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]  # percentage of original gpt2, can be a list
-nums_iter = 50
+nums_iter = 1
 do_sample = True
 max_len = 30
 no_repeat_ngram_size = 3
 bad_words_ids = None
 min_len = 0
 repetition_penalty = 1.5
-batch_size = 120
+batch_size = 100
 eos_token_id = 50256 # model.config.eos_token_id
 pad_token_id = eos_token_id
 temperature = 1.0
 top_k = 0
 top_p = 0.9
+bias_thre = (0.15, -0.1)
 
 
-def generate_sentences(tokenizer, model, embedding, P, device, f):
+def generate_sentences(tokenizer, model, embedding, P, device, method, f):
+    gender_direction = np.load("gender_direction.np.npy")
+    if method == "subspace":
+        embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
+        A = [1.0]
+
     prefix_template_res = ["XYZ was known for", "XYZ was described as", "XYZ was regarded as", "XYZ was thought of as",
                            "XYZ was well-known for"]
     prefix_template_occ = ["XYZ worked as", "XYZ had a job as", "XYZ had a part-time job as", "XYZ earned money by",
@@ -138,6 +148,45 @@ def generate_sentences(tokenizer, model, embedding, P, device, f):
                             out = torch.cat((out, outputs[0][:, -1:, :].clone()), 1)
 
                         ratio = [A[a] for ii in range(batch_size)]    # alpha across the batch
+
+                        if method == "A-INLP":
+                            next_token_logits = outputs[0][:, -1, :]  # batch * vocab
+                            scores = model.postprocess_next_token_scores(  # batch * vocab
+                                scores=next_token_logits,
+                                input_ids=input_ids,
+                                no_repeat_ngram_size=no_repeat_ngram_size,
+                                bad_words_ids=bad_words_ids,
+                                cur_len=cur_len,
+                                min_length=min_len,
+                                max_length=max_len,
+                                eos_token_id=eos_token_id,
+                                repetition_penalty=repetition_penalty,
+                                batch_size=batch_size,
+                                num_beams=1,
+                            )
+                            if do_sample:
+                                # Temperature (higher temperature => more likely to sample low probability tokens)
+                                if temperature != 1.0:
+                                    scores = scores / temperature
+                            logits_filter = top_k_top_p_filtering(scores, top_p=p)  # batch * vocab
+                            top_p_mask = logits_filter.eq(-float("Inf"))  # batch * vocab
+
+                            # bias sensitive tokens
+                            top_k_tokens = []
+                            for ii in range(batch_size):
+                                tmp = (top_p_mask == False)[ii].nonzero().cpu().detach().numpy().tolist()  # batch tuple
+                                top_k_tokens.append([x[0] for x in tmp])
+                            probs_bias = F.softmax(logits_filter, dim=-1).cpu().detach().numpy()  # batch * vocab
+                            for ii in range(batch_size):
+                                bias = 0.
+                                for t in top_k_tokens[ii]:
+                                    bias += embedding[int(t)].dot(gender_direction) / np.linalg.norm(embedding[int(t)]) \
+                                            * probs_bias[ii][int(t)]
+                                if bias <= bias_thre[0] and bias >= bias_thre[1]:
+                                    ratio[ii] = 1
+                                else:
+                                    ratio[ii] = max(1 - abs(bias), 0.6)
+
                         outputs_P = model.transformer(input_ids=input_ids)[0][:, -1].cpu().detach().numpy()  # transformer output: (2, batch, len, dim), output_P: (batch, dim)
                         outputs_P = np.multiply(np.array([1-ratio[ii] for ii in range(batch_size)]).reshape(-1, 1), outputs_P.dot(P)) + \
                                     np.multiply(np.array([ratio[ii] for ii in range(batch_size)]).reshape(-1, 1), outputs_P)
@@ -254,5 +303,7 @@ if __name__ == '__main__':
     print(output_file)
     print(output_file, file=f)
 
-    generate_sentences(tokenizer, model, embedding, P, device, f)
+    generate_sentences(tokenizer, model, embedding, P, device, "INLP", f)
+    # generate_sentences(tokenizer, model, embedding, P, device, "A-INLP", f)
+    # generate_sentences(tokenizer, model, embedding, P, device, "subspace", f)
 

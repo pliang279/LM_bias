@@ -69,12 +69,11 @@ def load_data():
     male_sent = np.loadtxt("../../data/male_sentences_clip.txt", dtype=str, delimiter="\n")
     female_sent = np.loadtxt("../../data/female_sentences_clip.txt", dtype=str, delimiter="\n")
     neut_sent = np.loadtxt("../../data/neut_sentences.txt", dtype=str, delimiter="\n")
-    print(male_sent.shape, female_sent.shape, neut_sent.shape)
+    print("The number of the dataset (male, female, neut): ", male_sent.shape, female_sent.shape, neut_sent.shape)
 
     male_sent = np.random.choice(male_sent, sample, replace=False)
     female_sent = np.random.choice(female_sent, sample, replace=False)
     neut_sent = np.random.choice(neut_sent, sample, replace=False)
-    print(male_sent.shape, female_sent.shape, neut_sent.shape)
 
     return male_sent, female_sent, neut_sent
 
@@ -117,6 +116,7 @@ def split_dataset(male_feat, female_feat, neut_feat):
     y = np.concatenate((y_masc, y_fem, y_neut))
     X_train_dev, X_test, y_train_dev, Y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.3, random_state=0)
     X_train, X_dev, Y_train, Y_dev = sklearn.model_selection.train_test_split(X_train_dev, y_train_dev, test_size=0.3, random_state=0)
+    print("Split the dataset")
     print("Train size: {}; Dev size: {}; Test size: {}".format(X_train.shape[0], X_dev.shape[0], X_test.shape[0]))
 
     return X_train, X_dev, X_test, Y_train, Y_dev, Y_test
@@ -191,7 +191,6 @@ def apply_nullspace_projection(X_train, X_dev, X_test, Y_train, Y_dev, Y_test):
                                                             X_train, Y_train, X_dev, Y_dev,
                                                             Y_train_main=None, Y_dev_main=None,
                                                             by_class=False, dropout_rate=dropout_rate)
-    # np.save("../../data/saved_P/P.npy", P)
 
     return P, rowspace_projs, Ws
 
@@ -222,12 +221,12 @@ def debias_effect_analysis(P, rowspace_projs, Ws, X_train, X_dev, X_test, Y_trai
     all_significantly_biased_labels = np.concatenate(
         (np.ones(male_feat.shape[0], dtype=int), np.zeros(female_feat.shape[0], dtype=int)))
     ind2label = {1: "Male-biased", 0: "Female-biased"}
-    tsne_before = tsne(all_significantly_biased_vecs, all_significantly_biased_labels, title="Original (t=0)",
+    tsne_before = tsne(all_significantly_biased_vecs, all_significantly_biased_labels,
                        ind2label=ind2label)
 
     all_significantly_biased_cleaned = P.dot(all_significantly_biased_vecs.T).T
     tsne_after = tsne(all_significantly_biased_cleaned, all_significantly_biased_labels,
-                      title="Projected (t={})".format(n), ind2label=ind2label)
+                      ind2label=ind2label)
 
     def perform_purity_test(vecs, k, labels_true):
         np.random.seed(0)
@@ -273,6 +272,7 @@ if __name__ == '__main__':
     male_sent, female_sent, neut_sent = load_data()
     # extract_feat_of_context(male_sent, female_sent, neut_sent)
 
+    # we load the saved context embedding
     male_feat, female_feat, neut_feat = np.load("../../data/male_sentence_clip_feat_random.npy"), \
                                         np.load("../../data/female_sentence_clip_feat_random.npy"), \
                                         np.load("../../data/neut_sentence_clip_feat_random.npy")
@@ -281,4 +281,6 @@ if __name__ == '__main__':
     # train_simple_classifier(X_train, X_dev, X_test, Y_train, Y_dev, Y_test, "SVM")
 
     P, rowspace_projs, Ws = apply_nullspace_projection(X_train, X_dev, X_test, Y_train, Y_dev, Y_test)
-    # debias_effect_analysis(P, rowspace_projs, Ws, X_train, X_dev, X_test, Y_train, Y_dev, Y_test)
+    debias_effect_analysis(P, rowspace_projs, Ws, X_train, X_dev, X_test, Y_train, Y_dev, Y_test)
+
+    np.save("../../data/saved_P/P.npy", P)

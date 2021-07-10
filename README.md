@@ -30,11 +30,27 @@ python context_nullspace_projection.py
 ```
 The code of nullspace projection is from [INLP](https://github.com/shauli-ravfogel/nullspace_projection). Thanks for their great work!
 
+To run the INLP experiments, you need to git clone https://github.com/shauli-ravfogel/nullspace_projection first, and put it under the root directory of this repo.
+
 ### 3. Evaluate Bias existing in the gpt2
+#### Local Bias
 ```python
+cd src/local_bias
 python measure_local_bias.py
 ```
 
-To reproduce the result in our paper, we also provide the projection matrix P for the gender bias test in `data/saved_P/P_gender_test_79.npy`
+It will take a long time to run the evaluation script on the full data. Here we provide the subset of our evaluation data now. Full data will be uploaded via google drive soon.
 
-More code and data will be uploaded soon
+#### Global Bias
+
+We use the regard score as the metric for global bias. The evaluation code is from https://github.com/ewsheng/nlg-bias. Thanks for their great work!
+
+```python
+git clone https://github.com/ewsheng/nlg-bias.git
+cd src/global_bias
+python generate_full_sentence.py
+```
+
+After full sentences are generated, you need to use the regard classifier to measure the global bias. In our experiment, we use the updated classifier.
+
+To reproduce the result in our paper, we also provide the projection matrix P for the gender bias test in `data/saved_P/P_gender_test_79.npy`
