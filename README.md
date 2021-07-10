@@ -50,9 +50,9 @@ We use the regard score as the metric for global bias. The evaluation code is fr
 ```python
 git clone https://github.com/ewsheng/nlg-bias.git
 cd src/global_bias
-python generate_full_sentence.py
+python generate_full_sentence.py --algorithm INLP
 ```
 
-After full sentences are generated, you need to use the regard classifier to measure the global bias. In our experiment, we use the updated classifier.
+After full sentences are generated, you need to use the regard classifier to measure the global bias. 
 
 To reproduce the result in our paper, we also provide the projection matrix P for the gender bias test in `data/saved_P/P_gender_test_79.npy`

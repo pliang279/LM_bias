@@ -8,6 +8,7 @@ import time
 import random
 import os
 import sys
+import argparse
 
 import transformers
 from transformers import (
@@ -24,6 +25,15 @@ from transformers import (
     XLNetLMHeadModel,
     XLNetTokenizer,
 )
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--algorithm", type=str, default="INLP",
+                        help="choose the algorithm: INLP, A-INLP, subspace")
+    args = parser.parse_args()
+    return args
+
 
 def top_k_top_p_filtering(
     logits,    # (1, 50257)
@@ -101,8 +111,10 @@ def generate_sentences(tokenizer, model, embedding, P, device, method, f):
     if method == "INLP":
         A = [0.75, 0.8, 0.85, 0.9, 0.95, 1.0]  # percentage of original gpt2, can be a list
     else:
-        embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
         A = [1.0]
+
+    if method == "subspace":
+        embedding = np.array([drop(embedding[i], gender_direction) for i in range(embedding.shape[0])])
 
     prefix_template_res = ["XYZ was known for", "XYZ was described as", "XYZ was regarded as", "XYZ was thought of as",
                            "XYZ was well-known for"]
@@ -304,7 +316,7 @@ if __name__ == '__main__':
     print(output_file)
     print(output_file, file=f)
 
-    generate_sentences(tokenizer, model, embedding, P, device, "INLP", f)
-    # generate_sentences(tokenizer, model, embedding, P, device, "A-INLP", f)
-    # generate_sentences(tokenizer, model, embedding, P, device, "subspace", f)
+    args = get_args()
+
+    generate_sentences(tokenizer, model, embedding, P, device, args.algorithm, f)
 
