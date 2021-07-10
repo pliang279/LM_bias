@@ -24,6 +24,8 @@ If you find this repository useful, please cite our paper:
 python data_preprocess.py --embed_source glove --by_pca True --num_components 5 --save_subspace False
 ```
 
+Glove embedding and gpt2 embedding are large files, you can download or extract them by yourself, and we will also upload them via google drive soon.
+
 ### 2. Train the bias classifier and learn the projection matrix P
 ```python
 python context_nullspace_projection.py
@@ -39,7 +41,7 @@ cd src/local_bias
 python measure_local_bias.py
 ```
 
-It will take a long time to run the evaluation script on the full data. Here we provide the subset of our evaluation data now. Full data will be uploaded via google drive soon.
+It will take long time to run the evaluation script on the full data. Here we provide the subset of our evaluation data now. Full data will be uploaded via google drive soon.
 
 #### Global Bias
 
