@@ -45,7 +45,7 @@ It will take long time to run the evaluation script on the full data. Here we pr
 
 #### Global Bias
 
-We use the regard score as the metric for global bias. The evaluation code is from https://github.com/ewsheng/nlg-bias. Thanks for their great work!
+We use the regard score difference as the metric for global bias. The evaluation code is from https://github.com/ewsheng/nlg-bias. Thanks for their great work!
 
 ```python
 git clone https://github.com/ewsheng/nlg-bias.git
