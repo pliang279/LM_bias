@@ -24,7 +24,7 @@ If you find this repository useful, please cite our paper:
 python data_preprocess.py --embed_source glove --by_pca True --num_components 5 --save_subspace False
 ```
 
-Glove embedding and gpt2 embedding are large files, you can download or extract them by yourself, and we will also upload them via google drive soon.
+Glove embedding and gpt2 embedding are large files, you can download or extract them by yourself. We also provide the [google drive link](https://drive.google.com/drive/folders/1up_8TC3_RxyDcmTrm9GKk1rU3dAt76ND?usp=sharing).
 
 ### 2. Train the bias classifier and learn the projection matrix P
 ```python
