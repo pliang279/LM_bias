@@ -11,11 +11,13 @@ ICML 2021
 
 If you find this repository useful, please cite our paper:
 ```
-@article{liang2021towards,
+@inproceedings{liang2021towards,
   title={Towards Understanding and Mitigating Social Biases in Language Models},
   author={Liang, Paul Pu and Wu, Chiyu and Morency, Louis-Philippe and Salakhutdinov, Ruslan},
-  journal={arXiv preprint arXiv:2106.13219},
-  year={2021}
+  booktitle={International Conference on Machine Learning},
+  pages={6565--6576},
+  year={2021},
+  organization={PMLR}
 }
 ```
 
@@ -56,3 +58,5 @@ python generate_full_sentence.py --algorithm INLP
 After full sentences are generated, you need to use the regard classifier to measure the global bias. 
 
 To reproduce the result in our paper, we also provide the projection matrix P for the gender bias test in `data/saved_P/P_gender_test_79.npy`
+
+## Acknowledgements
