@@ -58,8 +58,8 @@ def bias_subspace(embed, source=None, save_subspace=False, save_path="", by_pca=
         bias_subspace = pca.components_[:num_components]
         print("pca explained variance ratio: ", pca.explained_variance_ratio_)
         if save_subspace:
-            np.save(source + "_bias_subspace", bias_direction)
-            np.save(source + "_bias_direction", bias_subspace)
+            np.save(source + "_bias_subspace", bias_subspace)
+            np.save(source + "_bias_direction", bias_direction)
     else:
         bias_direction = embed["he"] - embed["she"]
         if save_subspace:
