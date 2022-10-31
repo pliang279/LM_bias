@@ -43,7 +43,7 @@ cd src/local_bias
 python measure_local_bias.py
 ```
 
-It will take long time to run the evaluation script on the full data. Here we provide the subset of our evaluation data now. Full data will be uploaded via google drive soon.
+It will take long time to run the evaluation script on the full data. Here we provide the subset of our evaluation data now. Full data is available via [google drive](https://drive.google.com/drive/folders/1TNCuWDm9gY0i-_ulfqmbPIOSh1Sx2Kyb). Note that when evaluating over full data, you may encounter numerical problems on some sentences, you can simply discard these samples.
 
 #### Global Bias
 
